@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
+    SensorDeviceClass, SensorStateClass
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy, STATE_UNKNOWN, UnitOfVolumeFlowRate
+from homeassistant.const import UnitOfVolume, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
@@ -25,19 +25,19 @@ SZJF_WATER_SENSORS = {
         "unit_of_measurement": "CNY/m³",
     },
     "current_level_consume": {
-        "name": "当前自来水阶梯",
+        "name": "当前阶梯自来水用量",
         "device_class": SensorDeviceClass.WATER,
-        "unit_of_measurement": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
     },
     "current_level_remain": {
         "name": "当前阶梯剩余额度",
         "device_class": SensorDeviceClass.WATER,
-        "unit_of_measurement": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
     },
     "year_consume": {
         "name": "本年度自来水用量",
         "device_class": SensorDeviceClass.WATER,
-        "unit_of_measurement": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
     },
     "year_consume_bill": {
         "name": "本年度自来水费用",
@@ -62,17 +62,17 @@ SZJF_GAS_SENSORS = {
     "current_level_consume": {
         "name": "当前阶梯天然气用量",
         "device_class": SensorDeviceClass.GAS,
-        "unit_of_measurement": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
     },
     "current_level_remain": {
         "name": "当前阶梯剩余额度",
         "device_class": SensorDeviceClass.GAS,
-        "unit_of_measurement": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
     },
     "year_consume": {
         "name": "本年度天然气用量",
         "device_class": SensorDeviceClass.GAS,
-        "unit_of_measurement": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "unit_of_measurement": UnitOfVolume.CUBIC_METERS,
     },
     "year_consume_bill": {
         "name": "本年度天然气费用",
@@ -108,7 +108,7 @@ async def async_setup_entry(
     data = coordinator.data
     for meterCode, values in data.items():
         sgcc_sensors_keys = []
-        sgcc_sensors_keys = SZJF_GAS_SENSORS.keys() if  values["meterUseType"] == "2" else SZJF_WATER_SENSORS.keys()
+        sgcc_sensors_keys = SZJF_GAS_SENSORS.keys() if values["meterUseType"] == "2" else SZJF_WATER_SENSORS.keys()
         for key in sgcc_sensors_keys:
             if key in values.keys():
                 sensors.append(SGCCSensor(coordinator, meterCode, values["meterUseType"], key))
@@ -139,7 +139,7 @@ class SGCCSensor(SGCCBaseSensor):
         self._meter_code = meter_code
         self._meter_type = meter_type
         self._sensor_key = sensor_key
-        SZJF_SENSORS =  SZJF_GAS_SENSORS if   meter_type == "2" else SZJF_WATER_SENSORS
+        SZJF_SENSORS = SZJF_GAS_SENSORS if meter_type == "2" else SZJF_WATER_SENSORS
         self._config = SZJF_SENSORS[self._sensor_key]
         self._attributes = self._config.get("attributes")
         self._coordinator = coordinator
@@ -214,7 +214,7 @@ class SGCCHistorySensor(SGCCBaseSensor):
             return (
                 self._coordinator.data.get(self._meter_code)
                 .get("history")[self._index]
-        .get("amount")
+                .get("amount")
             )
         except KeyError:
             return STATE_UNKNOWN
@@ -223,9 +223,9 @@ class SGCCHistorySensor(SGCCBaseSensor):
     def extra_state_attributes(self):
         try:
             return {
-        "money": self._coordinator.data.get(self._meter_code)
+                "money": self._coordinator.data.get(self._meter_code)
                 .get("history")[self._index]
-        .get("money")
+                .get("money")
             }
         except KeyError:
             return {"money": 0.0}
@@ -240,4 +240,4 @@ class SGCCHistorySensor(SGCCBaseSensor):
 
     @property
     def unit_of_measurement(self):
-        return UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR
+        return UnitOfVolume.CUBIC_METERS
